@@ -6,6 +6,7 @@ import { databaseConfig } from './config/database.config';
 import { searchConfig } from './config/search.config';
 import { serverConfig } from './config/server.config';
 import { DrizzleModule } from './core/db/drizzle/drizzle.module';
+import { DocumentsModule } from './modules/documents/documents.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { DrizzleModule } from './core/db/drizzle/drizzle.module';
       load: [serverConfig, databaseConfig, awsConfig, searchConfig],
     }),
     DrizzleModule,
+    DocumentsModule,
   ],
   controllers: [AppController],
 })
