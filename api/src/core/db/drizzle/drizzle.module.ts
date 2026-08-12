@@ -1,4 +1,10 @@
-import { Global, Inject, Logger, Module, OnModuleDestroy } from '@nestjs/common';
+import {
+  Global,
+  Inject,
+  Logger,
+  Module,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
@@ -28,7 +34,9 @@ export const PG_POOL = Symbol('PG_POOL');
         // client — and an unhandled one crashes the Node process. The pool
         // discards the dead client and reconnects on the next query.
         pool.on('error', (error) => {
-          new Logger('PgPool').warn(`Idle client error (reconnecting): ${error.message}`);
+          new Logger('PgPool').warn(
+            `Idle client error (reconnecting): ${error.message}`,
+          );
         });
 
         return pool;
