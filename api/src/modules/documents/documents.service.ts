@@ -6,11 +6,13 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { S3Service } from '../../integrations/aws/s3.service';
+import { DocumentSearchService } from './document-search.service';
 import { ALLOWED_MIME_MAP, UPLOAD_PREFIX } from './documents.constants';
 import { DocumentRow } from '../../core/db/drizzle/types';
 import { CreateUploadUrlDto } from './dto/requests/create-upload-url.dto';
 import { DocumentResponseDto } from './dto/responses/document.dto';
 import type { UploadUrlResponse } from './dto/responses/upload-url.dto';
+import type { SearchResponse } from './dto/responses/search.dto';
 import { DocumentsRepository } from './documents.repository';
 
 @Injectable()
@@ -20,6 +22,7 @@ export class DocumentsService {
   constructor(
     private readonly repository: DocumentsRepository,
     private readonly s3: S3Service,
+    private readonly documentSearch: DocumentSearchService,
   ) {}
 
   async createUploadUrl(dto: CreateUploadUrlDto): Promise<UploadUrlResponse> {
@@ -55,11 +58,24 @@ export class DocumentsService {
     return DocumentResponseDto.fromRows(rows);
   }
 
+  async search(email: string, query: string): Promise<SearchResponse> {
+    const hits = await this.documentSearch.search(email, query);
+
+    const rows = await this.repository.findManyByIds(
+      hits.map((hit) => hit.documentId),
+      email,
+    );
+    const alive = new Set(rows.map((row) => row.id));
+    const filtered = hits.filter((hit) => alive.has(hit.documentId));
+
+    return { total: filtered.length, hits: filtered };
+  }
+
   async remove(id: string, email: string): Promise<void> {
     const row = await this.requireOwned(id, email);
-
-    await this.s3.delete(row.s3Key);
     await this.repository.deleteById(row.id);
+    await this.s3.delete(row.s3Key);
+    await this.documentSearch.deleteDocument(row.id);
 
     this.logger.log(`Deleted document ${id}`);
   }
