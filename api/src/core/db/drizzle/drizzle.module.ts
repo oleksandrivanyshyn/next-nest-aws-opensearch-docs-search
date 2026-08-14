@@ -29,10 +29,6 @@ export const PG_POOL = Symbol('PG_POOL');
           connectionTimeoutMillis: 10_000,
         });
 
-        // Neon scales the compute to zero after a few minutes idle, which drops
-        // open connections. `pg` surfaces that as an 'error' event on the idle
-        // client — and an unhandled one crashes the Node process. The pool
-        // discards the dead client and reconnects on the next query.
         pool.on('error', (error) => {
           new Logger('PgPool').warn(
             `Idle client error (reconnecting): ${error.message}`,
