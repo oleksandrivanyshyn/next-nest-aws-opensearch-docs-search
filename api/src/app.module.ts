@@ -7,6 +7,7 @@ import { searchConfig } from './config/search.config';
 import { serverConfig } from './config/server.config';
 import { DrizzleModule } from './core/db/drizzle/drizzle.module';
 import { DocumentsModule } from './modules/documents/documents.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { WorkerModule } from './modules/worker/worker.module';
 
 @Module({
@@ -17,6 +18,7 @@ import { WorkerModule } from './modules/worker/worker.module';
     }),
     DrizzleModule,
     DocumentsModule,
+    NotificationsModule,
     WorkerModule,
   ],
   controllers: [AppController],

@@ -6,12 +6,15 @@ import {
   MAX_FILE_SIZE_BYTES,
 } from '../documents/documents.constants';
 import { DocumentsRepository } from '../documents/documents.repository';
+import { DocumentResponseDto } from '../documents/dto/responses/document.dto';
+import { SseService } from '../notifications/sse.service';
 import { ParserService } from '../parsing/parser.service';
 import {
   TextExtractionError,
   UnsupportedFileTypeError,
 } from '../parsing/parsing.errors';
 import { PermanentProcessingError } from './worker.errors';
+import type { DocumentRow } from '../../core/db/drizzle/types';
 
 @Injectable()
 export class DocumentProcessorService {
@@ -22,6 +25,7 @@ export class DocumentProcessorService {
     private readonly s3: S3Service,
     private readonly parser: ParserService,
     private readonly documentSearch: DocumentSearchService,
+    private readonly sse: SseService,
   ) {}
 
   async process(s3Key: string): Promise<void> {
@@ -75,14 +79,20 @@ export class DocumentProcessorService {
         createdAt: row.createdAt.toISOString(),
       });
 
-      await this.repository.updateStatus(row.id, 'INDEXED');
+      const indexed = await this.repository.updateStatus(row.id, 'INDEXED');
       this.logger.log(`Indexed ${row.id} (${content.length} chars)`);
+      this.notify(row.userEmail, indexed);
     } catch (error) {
       if (this.isPermanent(error)) {
         const message =
           error instanceof Error ? error.message : 'Unknown error';
-        await this.repository.updateStatus(row.id, 'ERROR', message);
+        const failed = await this.repository.updateStatus(
+          row.id,
+          'ERROR',
+          message,
+        );
         this.logger.warn(`Permanent failure for ${row.id}: ${message}`);
+        this.notify(row.userEmail, failed);
         return;
       }
 
@@ -91,6 +101,14 @@ export class DocumentProcessorService {
         error as Error,
       );
       throw error;
+    }
+  }
+
+  private notify(email: string, row: DocumentRow): void {
+    try {
+      this.sse.emit(email, DocumentResponseDto.fromRow(row));
+    } catch (error) {
+      this.logger.warn(`Failed to emit SSE for ${row.id}`, error as Error);
     }
   }
 

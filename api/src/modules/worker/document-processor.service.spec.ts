@@ -4,6 +4,7 @@ import { DocumentsRepository } from '../documents/documents.repository';
 import { DocumentSearchService } from '../documents/document-search.service';
 import { S3Service } from '../../integrations/aws/s3.service';
 import { ParserService } from '../parsing/parser.service';
+import { SseService } from '../notifications/sse.service';
 import { TextExtractionError } from '../parsing/parsing.errors';
 import { MAX_FILE_SIZE_BYTES } from '../documents/documents.constants';
 import type { DocumentRow } from '../../core/db/drizzle/types';
@@ -28,6 +29,7 @@ describe('DocumentProcessorService', () => {
   let s3: jest.Mocked<S3Service>;
   let parser: jest.Mocked<ParserService>;
   let documentSearch: jest.Mocked<DocumentSearchService>;
+  let sse: jest.Mocked<SseService>;
   let service: DocumentProcessorService;
 
   beforeEach(() => {
@@ -56,11 +58,16 @@ describe('DocumentProcessorService', () => {
       indexDocument: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<DocumentSearchService>;
 
+    sse = {
+      emit: jest.fn(),
+    } as unknown as jest.Mocked<SseService>;
+
     service = new DocumentProcessorService(
       repository,
       s3,
       parser,
       documentSearch,
+      sse,
     );
   });
 
@@ -76,6 +83,19 @@ describe('DocumentProcessorService', () => {
         createdAt: '2026-01-01T00:00:00.000Z',
       });
       expect(repository.updateStatus).toHaveBeenCalledWith(DOC_ID, 'INDEXED');
+    });
+
+    it('pushes the updated document to the owner over SSE', async () => {
+      repository.updateStatus.mockResolvedValue(
+        buildRow({ status: 'INDEXED' }),
+      );
+
+      await service.process(S3_KEY);
+
+      expect(sse.emit).toHaveBeenCalledWith(
+        'owner@example.com',
+        expect.objectContaining({ id: DOC_ID, status: 'INDEXED' }),
+      );
     });
   });
 
@@ -144,6 +164,20 @@ describe('DocumentProcessorService', () => {
       );
     });
 
+    it('pushes the ERROR status to the owner over SSE', async () => {
+      parser.extract.mockResolvedValue('');
+      repository.updateStatus.mockResolvedValue(
+        buildRow({ status: 'ERROR', errorMessage: 'No extractable text' }),
+      );
+
+      await service.process(S3_KEY);
+
+      expect(sse.emit).toHaveBeenCalledWith(
+        'owner@example.com',
+        expect.objectContaining({ status: 'ERROR' }),
+      );
+    });
+
     it('treats a parser failure as permanent', async () => {
       parser.extract.mockRejectedValue(
         new TextExtractionError('Failed to parse PDF'),
@@ -156,6 +190,18 @@ describe('DocumentProcessorService', () => {
         'ERROR',
         'Failed to parse PDF',
       );
+    });
+  });
+
+  describe('notification failures', () => {
+    it('does not turn a failed SSE push into a transient failure', async () => {
+      sse.emit.mockImplementation(() => {
+        throw new Error('stream exploded');
+      });
+
+      await expect(service.process(S3_KEY)).resolves.toBeUndefined();
+
+      expect(repository.updateStatus).toHaveBeenCalledWith(DOC_ID, 'INDEXED');
     });
   });
 
