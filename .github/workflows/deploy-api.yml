@@ -9,10 +9,6 @@ on:
       - ".github/workflows/deploy-api.yml"
   workflow_dispatch:
 
-# The runner is self-hosted on the EC2 box, so this must never be triggerable
-# from a fork. Only pushes to main in this repository run it - no pull_request
-# trigger. Any PR checks belong on ubuntu-latest instead.
-
 jobs:
   test:
     name: Test
@@ -51,8 +47,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # No AWS credentials here on purpose. The instance role supplies them
-      # through the metadata service, so nothing long-lived touches the disk.
       - name: Create .env
         working-directory: api
         run: |
