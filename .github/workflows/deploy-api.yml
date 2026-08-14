@@ -1,0 +1,99 @@
+name: Deploy API
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "api/**"
+      - ".github/workflows/deploy-api.yml"
+  workflow_dispatch:
+
+# The runner is self-hosted on the EC2 box, so this must never be triggerable
+# from a fork. Only pushes to main in this repository run it - no pull_request
+# trigger. Any PR checks belong on ubuntu-latest instead.
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: api
+        run: npm ci
+
+      - name: Lint
+        working-directory: api
+        run: npx eslint "src/**/*.ts"
+
+      - name: Unit tests
+        working-directory: api
+        run: npm test
+
+  deploy:
+    name: Deploy to EC2
+    runs-on: self-hosted
+    needs: test
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # No AWS credentials here on purpose. The instance role supplies them
+      # through the metadata service, so nothing long-lived touches the disk.
+      - name: Create .env
+        working-directory: api
+        run: |
+          cat > .env << EOF
+          PORT=5000
+          CORS_ORIGINS=${{ vars.CORS_ORIGINS }}
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          AWS_REGION=${{ vars.AWS_REGION }}
+          AWS_S3_BUCKET_NAME=${{ vars.AWS_S3_BUCKET_NAME }}
+          AWS_SQS_QUEUE_URL=${{ vars.AWS_SQS_QUEUE_URL }}
+          OPENSEARCH_NODE=${{ vars.OPENSEARCH_NODE }}
+          OPENSEARCH_AUTH_USERNAME=${{ vars.OPENSEARCH_AUTH_USERNAME }}
+          OPENSEARCH_AUTH_PASSWORD=${{ secrets.OPENSEARCH_AUTH_PASSWORD }}
+          EOF
+          chmod 600 .env
+
+      - name: Install dependencies
+        working-directory: api
+        run: npm ci
+
+      - name: Build
+        working-directory: api
+        run: npm run build
+
+      - name: Apply migrations
+        working-directory: api
+        run: npm run db:migrate
+
+      - name: Restart service
+        run: sudo systemctl restart docsearch-api
+
+      - name: Verify
+        run: |
+          for i in $(seq 1 15); do
+            if curl -fsS http://127.0.0.1:5000/api/health; then
+              echo
+              echo "healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "service did not become healthy"
+          sudo journalctl -u docsearch-api --no-pager -n 50
+          exit 1
