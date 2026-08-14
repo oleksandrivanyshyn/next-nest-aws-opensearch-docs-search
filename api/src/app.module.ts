@@ -7,6 +7,7 @@ import { searchConfig } from './config/search.config';
 import { serverConfig } from './config/server.config';
 import { DrizzleModule } from './core/db/drizzle/drizzle.module';
 import { DocumentsModule } from './modules/documents/documents.module';
+import { WorkerModule } from './modules/worker/worker.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { DocumentsModule } from './modules/documents/documents.module';
     }),
     DrizzleModule,
     DocumentsModule,
+    WorkerModule,
   ],
   controllers: [AppController],
 })
