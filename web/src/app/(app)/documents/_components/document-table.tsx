@@ -1,9 +1,9 @@
 'use client';
 
-import type { DocumentDto } from '@/lib/types';
+import type { DocumentDto } from '@/types/document.types';
 import { DocumentRow } from './document-row';
 
-export function DocumentList({
+export function DocumentTable({
   documents,
   email,
 }: {

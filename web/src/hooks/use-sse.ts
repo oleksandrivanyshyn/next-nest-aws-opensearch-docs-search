@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useDocumentsStore } from '@/store/documents-store';
-import type { DocumentDto } from '@/lib/types';
+import { useQueryClient } from '@tanstack/react-query';
+import { documentKeys } from '@/services/documents.service';
+import type { DocumentDto } from '@/types/document.types';
+import { upsertDocument } from '@/utils/upsert-document';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api';
 
 export function useSse(email: string | null): { connected: boolean } {
   const [connected, setConnected] = useState(false);
-  const upsert = useDocumentsStore((state) => state.upsert);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!email) return;
@@ -21,12 +23,20 @@ export function useSse(email: string | null): { connected: boolean } {
     source.addEventListener('ping', () => setConnected(true));
     source.addEventListener('document', (event) => {
       setConnected(true);
-      upsert(JSON.parse((event as MessageEvent<string>).data) as DocumentDto);
+
+      const updated = JSON.parse(
+        (event as MessageEvent<string>).data,
+      ) as DocumentDto;
+
+      queryClient.setQueryData<DocumentDto[]>(
+        documentKeys.list(email),
+        (current) => (current ? upsertDocument(current, updated) : current),
+      );
     });
     source.onerror = () => setConnected(false);
 
     return () => source.close();
-  }, [email, upsert]);
+  }, [email, queryClient]);
 
   return { connected };
 }

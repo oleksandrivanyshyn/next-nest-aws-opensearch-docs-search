@@ -1,7 +1,7 @@
 'use client';
 
-import type { SearchHit } from '@/lib/types';
-import { Highlight } from './highlight';
+import type { SearchHit } from '@/types/search.types';
+import { HighlightSnippet } from './highlight-snippet';
 
 export function SearchResults({
   hits,
@@ -29,7 +29,7 @@ export function SearchResults({
           <p className="font-medium">{hit.userFilename}</p>
           {hit.highlights.map((fragment, index) => (
             <p key={index} className="mt-1 text-sm opacity-80">
-              …<Highlight fragment={fragment} />…
+              …<HighlightSnippet fragment={fragment} />…
             </p>
           ))}
         </li>

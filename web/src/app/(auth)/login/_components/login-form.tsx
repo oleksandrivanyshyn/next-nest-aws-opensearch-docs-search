@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { isValidEmail } from '@/lib/validation';
+import { useRouter } from 'next/navigation';
+import { isValidEmail } from '@/utils/email';
 import { useUserStore } from '@/store/user-store';
 
-export function EmailGate() {
+export function LoginForm() {
   const setEmail = useUserStore((state) => state.setEmail);
+  const router = useRouter();
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -16,10 +18,11 @@ export function EmailGate() {
       return;
     }
     setEmail(value);
+    router.replace('/');
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 p-6">
+    <>
       <div>
         <h1 className="text-2xl font-semibold">Document search</h1>
         <p className="mt-1 text-sm opacity-70">
@@ -48,6 +51,6 @@ export function EmailGate() {
           Continue
         </button>
       </form>
-    </main>
+    </>
   );
 }

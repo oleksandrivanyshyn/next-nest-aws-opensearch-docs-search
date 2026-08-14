@@ -1,6 +1,6 @@
 const SENTINEL = /\[\[HL\]\]|\[\[\/HL\]\]/;
 
-export function Highlight({ fragment }: { fragment: string }) {
+export function HighlightSnippet({ fragment }: { fragment: string }) {
   const parts = fragment.split(SENTINEL);
 
   return (

@@ -2,13 +2,11 @@ import {
   MAX_FILE_SIZE_BYTES,
   MIME_DOCX,
   MIME_PDF,
-  isValidEmail,
   resolveContentType,
   validateFile,
-} from './validation';
+} from './file-validation';
 
-const fileOf = (name: string, size: number): File =>
-  ({ name, size }) as File;
+const fileOf = (name: string, size: number): File => ({ name, size }) as File;
 
 describe('resolveContentType', () => {
   it('maps the two supported extensions', () => {
@@ -52,17 +50,4 @@ describe('validateFile', () => {
   it('rejects an empty file', () => {
     expect(validateFile(fileOf('empty.pdf', 0))).toBe('File is empty');
   });
-});
-
-describe('isValidEmail', () => {
-  it.each(['a@b.co', ' spaced@example.com '])('accepts %s', (value) => {
-    expect(isValidEmail(value)).toBe(true);
-  });
-
-  it.each(['', 'no-at-sign', 'no@domain', 'two@@example.com'])(
-    'rejects %s',
-    (value) => {
-      expect(isValidEmail(value)).toBe(false);
-    },
-  );
 });

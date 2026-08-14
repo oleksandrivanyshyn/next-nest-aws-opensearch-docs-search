@@ -9,10 +9,6 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   '.docx': MIME_DOCX,
 };
 
-export function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-}
-
 export function resolveContentType(filename: string): string | null {
   const dot = filename.lastIndexOf('.');
   if (dot === -1) return null;

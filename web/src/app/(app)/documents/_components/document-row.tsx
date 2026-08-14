@@ -1,9 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { api } from '@/lib/api';
-import type { DocumentDto } from '@/lib/types';
-import { useDocumentsStore } from '@/store/documents-store';
+import type { DocumentDto } from '@/types/document.types';
+import { useDeleteDocument } from '../_hooks/use-documents';
 import { StatusBadge } from './status-badge';
 
 export function DocumentRow({
@@ -13,18 +11,7 @@ export function DocumentRow({
   document: DocumentDto;
   email: string;
 }) {
-  const remove = useDocumentsStore((state) => state.remove);
-  const [deleting, setDeleting] = useState(false);
-
-  async function handleDelete() {
-    setDeleting(true);
-    try {
-      await api.deleteDocument(document.id, email);
-      remove(document.id);
-    } catch {
-      setDeleting(false);
-    }
-  }
+  const { mutate: remove, isPending } = useDeleteDocument(email);
 
   return (
     <li className="flex items-start justify-between gap-4 border-b border-black/8 py-3 last:border-0 dark:border-white/10">
@@ -41,8 +28,8 @@ export function DocumentRow({
       <div className="flex shrink-0 items-center gap-3">
         <StatusBadge status={document.status} />
         <button
-          onClick={handleDelete}
-          disabled={deleting}
+          onClick={() => remove(document.id)}
+          disabled={isPending}
           className="text-sm opacity-60 hover:text-red-600 hover:opacity-100 disabled:opacity-30"
         >
           Delete

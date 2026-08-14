@@ -1,10 +1,10 @@
 import { render, screen } from '@testing-library/react';
-import { Highlight } from './highlight';
+import { HighlightSnippet } from './highlight-snippet';
 
-describe('Highlight', () => {
+describe('HighlightSnippet', () => {
   it('wraps the text between sentinels in a mark element', () => {
     const { container } = render(
-      <Highlight fragment="quarterly [[HL]]revenue[[/HL]] grew" />,
+      <HighlightSnippet fragment="quarterly [[HL]]revenue[[/HL]] grew" />,
     );
 
     const marks = container.querySelectorAll('mark');
@@ -13,7 +13,7 @@ describe('Highlight', () => {
   });
 
   it('keeps the surrounding text outside the mark', () => {
-    render(<Highlight fragment="quarterly [[HL]]revenue[[/HL]] grew" />);
+    render(<HighlightSnippet fragment="quarterly [[HL]]revenue[[/HL]] grew" />);
 
     expect(screen.getByText(/quarterly/)).toBeDefined();
     expect(screen.getByText(/grew/)).toBeDefined();
@@ -21,7 +21,7 @@ describe('Highlight', () => {
 
   it('renders markup from the document as visible text, never as html', () => {
     const { container } = render(
-      <Highlight fragment='<img src=x onerror="alert(1)"> [[HL]]onerror[[/HL]]' />,
+      <HighlightSnippet fragment='<img src=x onerror="alert(1)"> [[HL]]onerror[[/HL]]' />,
     );
 
     expect(container.querySelector('img')).toBeNull();
@@ -30,7 +30,7 @@ describe('Highlight', () => {
 
   it('does not treat a script tag in the fragment as markup', () => {
     const { container } = render(
-      <Highlight fragment="[[HL]]payload[[/HL]] <script>alert(1)</script>" />,
+      <HighlightSnippet fragment="[[HL]]payload[[/HL]] <script>alert(1)</script>" />,
     );
 
     expect(container.querySelector('script')).toBeNull();
@@ -38,7 +38,9 @@ describe('Highlight', () => {
   });
 
   it('renders a fragment with no match as plain text', () => {
-    const { container } = render(<Highlight fragment="nothing matched here" />);
+    const { container } = render(
+      <HighlightSnippet fragment="nothing matched here" />,
+    );
 
     expect(container.querySelectorAll('mark')).toHaveLength(0);
     expect(container.textContent).toBe('nothing matched here');

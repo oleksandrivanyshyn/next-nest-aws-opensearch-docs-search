@@ -1,4 +1,4 @@
-import type { DocumentStatus } from '@/lib/types';
+import type { DocumentStatus } from '@/types/document.types';
 
 const STYLES: Record<DocumentStatus, string> = {
   PENDING:
