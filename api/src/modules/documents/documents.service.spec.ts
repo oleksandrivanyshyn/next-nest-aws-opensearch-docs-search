@@ -116,6 +116,16 @@ describe('DocumentsService', () => {
 
       expect(repository.findManyByIds).toHaveBeenCalledWith([DOC_ID], OWNER);
     });
+
+    it('returns an empty result when the index matches nothing', async () => {
+      documentSearch.search.mockResolvedValue([]);
+      repository.findManyByIds.mockResolvedValue([]);
+
+      await expect(service.search(OWNER, 'revenue')).resolves.toEqual({
+        total: 0,
+        hits: [],
+      });
+    });
   });
 
   describe('remove', () => {
@@ -155,6 +165,20 @@ describe('DocumentsService', () => {
       expect(repository.deleteById).toHaveBeenCalledWith(DOC_ID);
       expect(s3.delete).toHaveBeenCalledWith(`uploads/${DOC_ID}.pdf`);
       expect(documentSearch.deleteDocument).toHaveBeenCalledWith(DOC_ID);
+    });
+
+    it('drops the row first so a failed cleanup cannot resurrect the document', async () => {
+      repository.findById.mockResolvedValue(buildRow());
+
+      await service.remove(DOC_ID, OWNER);
+
+      const [rowDeleted] = repository.deleteById.mock.invocationCallOrder;
+      const [objectDeleted] = s3.delete.mock.invocationCallOrder;
+      const [indexDeleted] = documentSearch.deleteDocument.mock
+        .invocationCallOrder;
+
+      expect(rowDeleted).toBeLessThan(objectDeleted);
+      expect(rowDeleted).toBeLessThan(indexDeleted);
     });
   });
 });

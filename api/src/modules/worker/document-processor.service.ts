@@ -84,14 +84,12 @@ export class DocumentProcessorService {
       this.notify(row.userEmail, indexed);
     } catch (error) {
       if (this.isPermanent(error)) {
-        const message =
-          error instanceof Error ? error.message : 'Unknown error';
         const failed = await this.repository.updateStatus(
           row.id,
           'ERROR',
-          message,
+          error.message,
         );
-        this.logger.warn(`Permanent failure for ${row.id}: ${message}`);
+        this.logger.warn(`Permanent failure for ${row.id}: ${error.message}`);
         this.notify(row.userEmail, failed);
         return;
       }
@@ -112,7 +110,7 @@ export class DocumentProcessorService {
     }
   }
 
-  private isPermanent(error: unknown): boolean {
+  private isPermanent(error: unknown): error is Error {
     return (
       error instanceof PermanentProcessingError ||
       error instanceof UnsupportedFileTypeError ||

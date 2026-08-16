@@ -5,7 +5,10 @@ import { DocumentSearchService } from '../documents/document-search.service';
 import { S3Service } from '../../integrations/aws/s3.service';
 import { ParserService } from '../parsing/parser.service';
 import { SseService } from '../notifications/sse.service';
-import { TextExtractionError } from '../parsing/parsing.errors';
+import {
+  TextExtractionError,
+  UnsupportedFileTypeError,
+} from '../parsing/parsing.errors';
 import { MAX_FILE_SIZE_BYTES } from '../documents/documents.constants';
 import type { DocumentRow } from '../../core/db/drizzle/types';
 
@@ -136,6 +139,18 @@ describe('DocumentProcessorService', () => {
       );
     });
 
+    it('never pulls an oversized object into memory', async () => {
+      s3.head.mockResolvedValue({
+        contentLength: MAX_FILE_SIZE_BYTES + 1,
+        contentType: 'application/pdf',
+      });
+
+      await service.process(S3_KEY);
+
+      expect(s3.download).not.toHaveBeenCalled();
+      expect(parser.extract).not.toHaveBeenCalled();
+    });
+
     it('marks ERROR when the stored content type is not allowed', async () => {
       s3.head.mockResolvedValue({
         contentLength: 1024,
@@ -189,6 +204,18 @@ describe('DocumentProcessorService', () => {
         DOC_ID,
         'ERROR',
         'Failed to parse PDF',
+      );
+    });
+
+    it('treats an extension the parser cannot dispatch as permanent', async () => {
+      parser.extract.mockRejectedValue(new UnsupportedFileTypeError('.png'));
+
+      await expect(service.process(S3_KEY)).resolves.toBeUndefined();
+
+      expect(repository.updateStatus).toHaveBeenCalledWith(
+        DOC_ID,
+        'ERROR',
+        'Unsupported file type: .png',
       );
     });
   });
