@@ -9,6 +9,10 @@ on:
       - ".github/workflows/deploy-api.yml"
   workflow_dispatch:
 
+concurrency:
+  group: deploy-api-production
+  cancel-in-progress: false
+
 jobs:
   test:
     name: Test
@@ -31,7 +35,7 @@ jobs:
 
       - name: Lint
         working-directory: api
-        run: npx eslint "src/**/*.ts"
+        run: npm run lint:check
 
       - name: Unit tests
         working-directory: api
