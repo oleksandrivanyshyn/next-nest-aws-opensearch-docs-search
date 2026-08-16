@@ -174,8 +174,8 @@ describe('DocumentsService', () => {
 
       const [rowDeleted] = repository.deleteById.mock.invocationCallOrder;
       const [objectDeleted] = s3.delete.mock.invocationCallOrder;
-      const [indexDeleted] = documentSearch.deleteDocument.mock
-        .invocationCallOrder;
+      const [indexDeleted] =
+        documentSearch.deleteDocument.mock.invocationCallOrder;
 
       expect(rowDeleted).toBeLessThan(objectDeleted);
       expect(rowDeleted).toBeLessThan(indexDeleted);

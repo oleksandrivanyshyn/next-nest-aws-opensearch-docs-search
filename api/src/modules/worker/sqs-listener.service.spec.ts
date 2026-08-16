@@ -154,7 +154,7 @@ describe('SqsListenerService polling', () => {
   });
 
   it('aborts the in-flight long poll on shutdown', async () => {
-    const [signal] = sqs.receive.mock.calls[0] as [AbortSignal];
+    const [signal] = sqs.receive.mock.calls[0];
     expect(signal.aborted).toBe(false);
 
     await shutdown();

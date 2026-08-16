@@ -20,7 +20,7 @@ export class SseService implements OnModuleDestroy {
   private readonly streams = new Map<string, StreamEntry>();
 
   subscribe(email: string): Observable<MessageEvent> {
-    const entry = this.streams.get(email) ?? this.createEntry(email);
+    const entry = this.getOrCreateEntry(email);
     entry.refs += 1;
     this.logger.log(`SSE subscribe ${email} (${entry.refs} open)`);
 
@@ -49,12 +49,15 @@ export class SseService implements OnModuleDestroy {
     this.streams.clear();
   }
 
-  private createEntry(email: string): StreamEntry {
-    const entry: StreamEntry = {
-      subject: new Subject<MessageEvent>(),
-      refs: 0,
-    };
-    this.streams.set(email, entry);
+  private getOrCreateEntry(email: string): StreamEntry {
+    let entry = this.streams.get(email);
+    if (!entry) {
+      entry = {
+        subject: new Subject<MessageEvent>(),
+        refs: 0,
+      };
+      this.streams.set(email, entry);
+    }
     return entry;
   }
 
