@@ -52,7 +52,7 @@ export class DocumentProcessorService {
       }
 
       if (
-        metadata.contentType &&
+        !metadata.contentType ||
         !(ALLOWED_MIME_TYPES as readonly string[]).includes(
           metadata.contentType,
         )

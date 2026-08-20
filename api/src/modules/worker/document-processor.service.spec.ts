@@ -166,6 +166,22 @@ describe('DocumentProcessorService', () => {
       );
     });
 
+    it('marks ERROR when S3 reports no content type at all', async () => {
+      s3.head.mockResolvedValue({
+        contentLength: 1024,
+        contentType: undefined,
+      });
+
+      await expect(service.process(S3_KEY)).resolves.toBeUndefined();
+
+      expect(parser.extract).not.toHaveBeenCalled();
+      expect(repository.updateStatus).toHaveBeenCalledWith(
+        DOC_ID,
+        'ERROR',
+        expect.stringContaining('Unsupported content type'),
+      );
+    });
+
     it('marks ERROR when extraction yields no text', async () => {
       parser.extract.mockResolvedValue('');
 
