@@ -71,6 +71,12 @@ export class DocumentProcessorService {
         );
       }
 
+      const stillExists = await this.repository.findById(row.id);
+      if (!stillExists) {
+        this.logger.log(`${row.id} deleted mid-flight, discarding`);
+        return;
+      }
+
       await this.documentSearch.indexDocument({
         documentId: row.id,
         userEmail: row.userEmail,
@@ -81,7 +87,7 @@ export class DocumentProcessorService {
 
       const indexed = await this.repository.updateStatus(row.id, 'INDEXED');
       this.logger.log(`Indexed ${row.id} (${content.length} chars)`);
-      this.notify(row.userEmail, indexed);
+      if (indexed) this.notify(row.userEmail, indexed);
     } catch (error) {
       if (this.isPermanent(error)) {
         const failed = await this.repository.updateStatus(
@@ -90,7 +96,7 @@ export class DocumentProcessorService {
           error.message,
         );
         this.logger.warn(`Permanent failure for ${row.id}: ${error.message}`);
-        this.notify(row.userEmail, failed);
+        if (failed) this.notify(row.userEmail, failed);
         return;
       }
 

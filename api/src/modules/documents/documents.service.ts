@@ -82,9 +82,9 @@ export class DocumentsService {
 
   async remove(id: string, email: string): Promise<void> {
     const row = await this.requireOwned(id, email);
-    await this.repository.deleteById(row.id);
     await this.s3.delete(row.s3Key);
     await this.documentSearch.deleteDocument(row.id);
+    await this.repository.deleteById(row.id);
 
     this.logger.log(`Deleted document ${id}`);
   }

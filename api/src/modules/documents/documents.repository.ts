@@ -56,7 +56,7 @@ export class DocumentsRepository {
     id: string,
     status: DocumentStatus,
     errorMessage: string | null = null,
-  ): Promise<DocumentRow> {
+  ): Promise<DocumentRow | undefined> {
     const [updated] = await this.db
       .update(documents)
       .set({ status, errorMessage, updatedAt: new Date() })

@@ -41,6 +41,7 @@ describe('DocumentProcessorService', () => {
 
     repository = {
       findByS3Key: jest.fn().mockResolvedValue(buildRow()),
+      findById: jest.fn().mockResolvedValue(buildRow()),
       updateStatus: jest.fn().mockResolvedValue(buildRow()),
     } as unknown as jest.Mocked<DocumentsRepository>;
 
@@ -249,6 +250,25 @@ describe('DocumentProcessorService', () => {
         'ERROR',
         'Unsupported file type: .png',
       );
+    });
+  });
+
+  describe('deleted mid-flight', () => {
+    it('discards the result instead of indexing a document that was deleted while parsing', async () => {
+      repository.findById.mockResolvedValue(undefined);
+
+      await service.process(S3_KEY);
+
+      expect(documentSearch.indexDocument).not.toHaveBeenCalled();
+      expect(repository.updateStatus).not.toHaveBeenCalled();
+    });
+
+    it('skips the notification when the row disappears between indexing and the status update', async () => {
+      repository.updateStatus.mockResolvedValue(undefined);
+
+      await expect(service.process(S3_KEY)).resolves.toBeUndefined();
+
+      expect(sse.emit).not.toHaveBeenCalled();
     });
   });
 

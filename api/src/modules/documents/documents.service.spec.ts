@@ -196,7 +196,7 @@ describe('DocumentsService', () => {
       expect(documentSearch.deleteDocument).toHaveBeenCalledWith(DOC_ID);
     });
 
-    it('drops the row first so a failed cleanup cannot resurrect the document', async () => {
+    it('deletes the stored content before the row, so a failed cleanup cannot leave an orphan', async () => {
       repository.findById.mockResolvedValue(buildRow());
 
       await service.remove(DOC_ID, OWNER);
@@ -206,8 +206,8 @@ describe('DocumentsService', () => {
       const [indexDeleted] =
         documentSearch.deleteDocument.mock.invocationCallOrder;
 
-      expect(rowDeleted).toBeLessThan(objectDeleted);
-      expect(rowDeleted).toBeLessThan(indexDeleted);
+      expect(objectDeleted).toBeLessThan(rowDeleted);
+      expect(indexDeleted).toBeLessThan(rowDeleted);
     });
   });
 });
