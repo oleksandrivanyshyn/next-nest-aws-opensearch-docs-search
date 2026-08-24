@@ -9,6 +9,7 @@ import { SqsService } from '../../integrations/aws/sqs.service';
 import {
   S3EventNotification,
   decodeS3Key,
+  isObjectCreated,
   isTestEvent,
 } from '../../integrations/aws/s3-event';
 import { DocumentProcessorService } from './document-processor.service';
@@ -53,7 +54,14 @@ export class SqsListenerService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      for (const record of payload.Records ?? []) {
+      if (!isObjectCreated(payload)) {
+        this.logger.error(
+          `Unrecognised SQS payload, leaving on queue: ${message.Body}`,
+        );
+        return;
+      }
+
+      for (const record of payload.Records) {
         await this.processor.process(decodeS3Key(record.s3.object.key));
       }
 

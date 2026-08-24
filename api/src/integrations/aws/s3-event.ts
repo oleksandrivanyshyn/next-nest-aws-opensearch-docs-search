@@ -12,7 +12,13 @@ export interface S3EventNotification {
 }
 
 export function isTestEvent(payload: S3EventNotification): boolean {
-  return payload.Event === 's3:TestEvent' || !Array.isArray(payload.Records);
+  return payload.Event === 's3:TestEvent';
+}
+
+export function isObjectCreated(
+  payload: S3EventNotification,
+): payload is S3EventNotification & { Records: S3EventRecord[] } {
+  return Array.isArray(payload.Records) && payload.Records.length > 0;
 }
 
 export function decodeS3Key(key: string): string {

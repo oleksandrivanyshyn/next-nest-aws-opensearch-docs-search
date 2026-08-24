@@ -87,6 +87,26 @@ describe('SqsListenerService.handleMessage', () => {
     expect(sqs.deleteMessage).not.toHaveBeenCalled();
   });
 
+  it('leaves an unrecognised payload on the queue instead of discarding it', async () => {
+    await service.handleMessage({
+      Body: JSON.stringify({ some: 'unexpected shape' }),
+      ReceiptHandle: RECEIPT,
+    });
+
+    expect(processor.process).not.toHaveBeenCalled();
+    expect(sqs.deleteMessage).not.toHaveBeenCalled();
+  });
+
+  it('leaves a payload with an empty Records array on the queue', async () => {
+    await service.handleMessage({
+      Body: JSON.stringify({ Records: [] }),
+      ReceiptHandle: RECEIPT,
+    });
+
+    expect(processor.process).not.toHaveBeenCalled();
+    expect(sqs.deleteMessage).not.toHaveBeenCalled();
+  });
+
   it('ignores a message with no body or receipt handle', async () => {
     await service.handleMessage({});
 

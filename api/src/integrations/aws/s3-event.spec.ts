@@ -1,28 +1,42 @@
-import { decodeS3Key, isTestEvent } from './s3-event';
+import { decodeS3Key, isObjectCreated, isTestEvent } from './s3-event';
+
+const objectCreatedRecord = {
+  eventName: 'ObjectCreated:Put',
+  s3: {
+    bucket: { name: 'bucket' },
+    object: { key: 'uploads/a.pdf', size: 10 },
+  },
+};
 
 describe('isTestEvent', () => {
   it('recognises the notification S3 sends when the hook is attached', () => {
     expect(isTestEvent({ Event: 's3:TestEvent' })).toBe(true);
   });
 
-  it('treats a payload without a Records array as a test event', () => {
-    expect(isTestEvent({})).toBe(true);
+  it('does not treat an unrecognised payload as a test event', () => {
+    expect(isTestEvent({})).toBe(false);
   });
 
-  it('lets a real object-created notification through', () => {
-    expect(
-      isTestEvent({
-        Records: [
-          {
-            eventName: 'ObjectCreated:Put',
-            s3: {
-              bucket: { name: 'bucket' },
-              object: { key: 'uploads/a.pdf', size: 10 },
-            },
-          },
-        ],
-      }),
-    ).toBe(false);
+  it('does not treat a real object-created notification as a test event', () => {
+    expect(isTestEvent({ Records: [objectCreatedRecord] })).toBe(false);
+  });
+});
+
+describe('isObjectCreated', () => {
+  it('recognises a payload with at least one record', () => {
+    expect(isObjectCreated({ Records: [objectCreatedRecord] })).toBe(true);
+  });
+
+  it('rejects a payload with no Records array', () => {
+    expect(isObjectCreated({})).toBe(false);
+  });
+
+  it('rejects a payload with an empty Records array', () => {
+    expect(isObjectCreated({ Records: [] })).toBe(false);
+  });
+
+  it('rejects the s3:TestEvent shape, which carries no Records at all', () => {
+    expect(isObjectCreated({ Event: 's3:TestEvent' })).toBe(false);
   });
 });
 
