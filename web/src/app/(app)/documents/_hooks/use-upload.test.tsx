@@ -13,7 +13,7 @@ jest.mock('@/services/documents.service', () => {
 
   return {
     documentKeys: actual.documentKeys,
-    documentsService: { createUploadUrl: jest.fn() },
+    documentsService: { createUploadUrl: jest.fn(), delete: jest.fn() },
   };
 });
 
@@ -23,7 +23,7 @@ jest.mock('@/services/s3.service', () => ({
 
 const { documentsService } = jest.requireMock(
   '@/services/documents.service',
-) as { documentsService: { createUploadUrl: jest.Mock } };
+) as { documentsService: { createUploadUrl: jest.Mock; delete: jest.Mock } };
 
 const { s3Service } = jest.requireMock('@/services/s3.service') as {
   s3Service: { upload: jest.Mock };
@@ -65,6 +65,7 @@ beforeEach(() => {
     document: buildDocument(),
   });
   s3Service.upload.mockResolvedValue(undefined);
+  documentsService.delete.mockResolvedValue(undefined);
 });
 
 describe('useUpload', () => {
@@ -140,5 +141,38 @@ describe('useUpload', () => {
     expect(
       queryClient.getQueryData<DocumentDto[]>(documentKeys.list(EMAIL)),
     ).toBeUndefined();
+  });
+
+  it('rolls back the pending row when the s3 upload fails', async () => {
+    s3Service.upload.mockRejectedValue(new Error('S3 upload failed with 403'));
+    const { result } = renderUpload();
+
+    act(() => result.current.upload(new File(['pdf bytes'], 'report.pdf')));
+
+    await waitFor(() => expect(documentsService.delete).toHaveBeenCalled());
+    expect(documentsService.delete).toHaveBeenCalledWith(
+      '11111111-1111-4111-8111-111111111111',
+      EMAIL,
+    );
+  });
+
+  it('still surfaces the original upload error when the rollback itself fails', async () => {
+    s3Service.upload.mockRejectedValue(new Error('S3 upload failed with 403'));
+    documentsService.delete.mockRejectedValue(new Error('row already gone'));
+    const { result } = renderUpload();
+
+    act(() => result.current.upload(new File(['pdf bytes'], 'report.pdf')));
+
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.error?.message).toBe('S3 upload failed with 403');
+  });
+
+  it('does not roll back once the s3 upload has actually succeeded', async () => {
+    const { result } = renderUpload();
+
+    act(() => result.current.upload(new File(['pdf bytes'], 'report.pdf')));
+
+    await waitFor(() => expect(result.current.uploading).toBe(false));
+    expect(documentsService.delete).not.toHaveBeenCalled();
   });
 });

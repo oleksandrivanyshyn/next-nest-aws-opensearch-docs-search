@@ -27,7 +27,13 @@ export const useUpload = (email: string) => {
           size: file.size,
         });
 
-      await s3Service.upload(uploadUrl, requiredHeaders, file);
+      try {
+        await s3Service.upload(uploadUrl, requiredHeaders, file);
+      } catch (error) {
+        await documentsService.delete(document.id, email).catch(() => undefined);
+        throw error;
+      }
+
       return document;
     },
     onSuccess: (document) => {
