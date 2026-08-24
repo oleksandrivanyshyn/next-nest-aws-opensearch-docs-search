@@ -1,0 +1,1 @@
+CREATE INDEX "documents_user_email_created_at_idx" ON "documents" USING btree ("user_email","created_at" DESC NULLS LAST);
