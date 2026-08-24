@@ -7,6 +7,7 @@ import {
   Min,
   Max,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE_BYTES,
@@ -15,6 +16,7 @@ import type { AllowedMimeType } from '../../documents.constants';
 
 export class CreateUploadUrlDto {
   @IsEmail()
+  @Transform(({ value }) => String(value).trim().toLowerCase())
   email!: string;
 
   @IsString()
