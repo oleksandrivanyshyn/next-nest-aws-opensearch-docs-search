@@ -97,6 +97,20 @@ npm run dev                 # http://localhost:3000
 
 `GET /api/health` returns `{"status":"ok"}` once the API is up. On first boot the API creates the OpenSearch index and logs `Created index "documents"`.
 
+### Running Postgres and OpenSearch locally instead
+
+Neon and an OpenSearch domain both cost money to keep running just for local development. `docker-compose.yml` at the repo root brings up disposable equivalents of both:
+
+```bash
+docker compose up -d
+cp api/.env.compose.example api/.env
+cd api && npm run db:migrate && npm run start:dev
+```
+
+Ports are offset from the usual `5432`/`9200` — `5433` and `9201` — so this does not collide with a Postgres or OpenSearch instance you may already have running for another project.
+
+S3 and SQS still need to be real AWS resources; there is no local equivalent for either in this setup (a tool like LocalStack could provide one, but that is a larger change than this repo currently makes). `docker compose down -v` removes both containers and their volumes.
+
 ## Environment variables
 
 ### `api/.env`
