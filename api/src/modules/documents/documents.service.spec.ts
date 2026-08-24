@@ -1,4 +1,8 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { DocumentsService } from './documents.service';
 import { DocumentsRepository } from './documents.repository';
 import { DocumentSearchService } from './document-search.service';
@@ -63,12 +67,12 @@ describe('DocumentsService', () => {
   });
 
   describe('createUploadUrl', () => {
-    it('derives the s3 key extension from the content type, not the filename', async () => {
+    it('derives the s3 key extension from the content type, not the filename casing', async () => {
       repository.create.mockResolvedValue(buildRow());
 
       await service.createUploadUrl({
         email: OWNER,
-        filename: 'totally-not-a.exe',
+        filename: 'REPORT.PDF',
         contentType: 'application/pdf',
         size: 1024,
       });
@@ -83,7 +87,7 @@ describe('DocumentsService', () => {
 
       await service.createUploadUrl({
         email: OWNER,
-        filename: 'report',
+        filename: 'report.docx',
         contentType:
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         size: 1024,
@@ -91,6 +95,31 @@ describe('DocumentsService', () => {
 
       const [created] = repository.create.mock.calls[0];
       expect(created.s3Key).toMatch(/\.docx$/);
+    });
+
+    it('rejects a filename whose extension does not match the content type', async () => {
+      await expect(
+        service.createUploadUrl({
+          email: OWNER,
+          filename: 'totally-not-a.exe',
+          contentType: 'application/pdf',
+          size: 1024,
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(repository.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects a pdf filename declared with the docx content type', async () => {
+      await expect(
+        service.createUploadUrl({
+          email: OWNER,
+          filename: 'report.pdf',
+          contentType:
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          size: 1024,
+        }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

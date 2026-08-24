@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { extname } from 'node:path';
 import { S3Service } from '../../integrations/aws/s3.service';
 import { DocumentSearchService } from './document-search.service';
 import { ALLOWED_MIME_MAP, UPLOAD_PREFIX } from './documents.constants';
@@ -26,8 +28,15 @@ export class DocumentsService {
   ) {}
 
   async createUploadUrl(dto: CreateUploadUrlDto): Promise<UploadUrlResponse> {
+    const expectedExtension = ALLOWED_MIME_MAP[dto.contentType];
+    if (extname(dto.filename).toLowerCase() !== expectedExtension) {
+      throw new BadRequestException(
+        `filename extension does not match contentType ${dto.contentType}`,
+      );
+    }
+
     const id = randomUUID();
-    const s3Key = `${UPLOAD_PREFIX}${id}${ALLOWED_MIME_MAP[dto.contentType]}`;
+    const s3Key = `${UPLOAD_PREFIX}${id}${expectedExtension}`;
 
     const document = await this.repository.create({
       id,

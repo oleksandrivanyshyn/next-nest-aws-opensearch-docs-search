@@ -3,6 +3,7 @@ import {
   IsIn,
   IsInt,
   IsString,
+  Matches,
   MaxLength,
   Min,
   Max,
@@ -21,6 +22,7 @@ export class CreateUploadUrlDto {
 
   @IsString()
   @MaxLength(255)
+  @Matches(/\.(pdf|docx)$/i, { message: 'filename must end in .pdf or .docx' })
   filename!: string;
 
   @IsIn(ALLOWED_MIME_TYPES)
