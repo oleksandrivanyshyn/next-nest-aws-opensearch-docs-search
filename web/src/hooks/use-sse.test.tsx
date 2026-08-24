@@ -178,4 +178,23 @@ describe('useSse cache updates', () => {
 
     expect(cachedList(queryClient)).toBeUndefined();
   });
+
+  it('invalidates the list and search caches so stale results refresh', () => {
+    const { queryClient } = renderSse();
+    queryClient.setQueryData(documentKeys.list(EMAIL), [buildDocument()]);
+    queryClient.setQueryData(documentKeys.search(EMAIL, 'revenue'), {
+      total: 1,
+      hits: [],
+    });
+
+    latestStream().dispatch('document', buildDocument({ status: 'INDEXED' }));
+
+    expect(
+      queryClient.getQueryState(documentKeys.list(EMAIL))?.isInvalidated,
+    ).toBe(true);
+    expect(
+      queryClient.getQueryState(documentKeys.search(EMAIL, 'revenue'))
+        ?.isInvalidated,
+    ).toBe(true);
+  });
 });

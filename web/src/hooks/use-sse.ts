@@ -32,6 +32,7 @@ export function useSse(email: string | null): { connected: boolean } {
         documentKeys.list(email),
         (current) => (current ? upsertDocument(current, updated) : current),
       );
+      void queryClient.invalidateQueries({ queryKey: documentKeys.all });
     });
     source.onerror = () => setConnected(false);
 
