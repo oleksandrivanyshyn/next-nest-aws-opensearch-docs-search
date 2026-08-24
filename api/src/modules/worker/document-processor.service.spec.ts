@@ -151,6 +151,22 @@ describe('DocumentProcessorService', () => {
       expect(parser.extract).not.toHaveBeenCalled();
     });
 
+    it('rejects an object stored at exactly the size cap', async () => {
+      s3.head.mockResolvedValue({
+        contentLength: MAX_FILE_SIZE_BYTES,
+        contentType: 'application/pdf',
+      });
+
+      await service.process(S3_KEY);
+
+      expect(s3.download).not.toHaveBeenCalled();
+      expect(repository.updateStatus).toHaveBeenCalledWith(
+        DOC_ID,
+        'ERROR',
+        expect.stringContaining('limit is'),
+      );
+    });
+
     it('marks ERROR when the stored content type is not allowed', async () => {
       s3.head.mockResolvedValue({
         contentLength: 1024,

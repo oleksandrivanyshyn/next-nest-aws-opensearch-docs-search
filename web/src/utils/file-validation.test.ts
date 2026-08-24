@@ -43,8 +43,16 @@ describe('validateFile', () => {
     );
   });
 
-  it('accepts a file exactly at the cap', () => {
-    expect(validateFile(fileOf('edge.pdf', MAX_FILE_SIZE_BYTES))).toBeNull();
+  it('rejects a file exactly at the cap', () => {
+    expect(validateFile(fileOf('edge.pdf', MAX_FILE_SIZE_BYTES))).toContain(
+      'limit is 10 MB',
+    );
+  });
+
+  it('accepts the largest file still under the cap', () => {
+    expect(
+      validateFile(fileOf('edge.pdf', MAX_FILE_SIZE_BYTES - 1)),
+    ).toBeNull();
   });
 
   it('rejects an empty file', () => {

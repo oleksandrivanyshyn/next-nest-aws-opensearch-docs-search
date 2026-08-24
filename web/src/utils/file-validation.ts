@@ -19,7 +19,7 @@ export function validateFile(file: File): string | null {
   if (!resolveContentType(file.name)) {
     return 'Only .pdf and .docx files are supported';
   }
-  if (file.size > MAX_FILE_SIZE_BYTES) {
+  if (file.size >= MAX_FILE_SIZE_BYTES) {
     return `File is ${(file.size / 1024 / 1024).toFixed(1)} MB — the limit is 10 MB`;
   }
   if (file.size === 0) {

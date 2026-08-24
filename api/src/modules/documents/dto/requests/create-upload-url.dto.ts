@@ -28,6 +28,6 @@ export class CreateUploadUrlDto {
 
   @IsInt()
   @Min(1)
-  @Max(MAX_FILE_SIZE_BYTES)
+  @Max(MAX_FILE_SIZE_BYTES - 1)
   size!: number;
 }

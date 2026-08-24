@@ -44,7 +44,7 @@ export class DocumentProcessorService {
     try {
       const metadata = await this.s3.head(s3Key);
 
-      if (metadata.contentLength > MAX_FILE_SIZE_BYTES) {
+      if (metadata.contentLength >= MAX_FILE_SIZE_BYTES) {
         await this.s3.delete(s3Key);
         throw new PermanentProcessingError(
           `File is ${metadata.contentLength} bytes, limit is ${MAX_FILE_SIZE_BYTES}`,
